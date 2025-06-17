@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Game Stock Notifier</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      padding: 30px;
+    }
+    h1 {
+      text-align: center;
+    }
+    button {
+      display: block;
+      margin: 10px auto 30px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .section {
+      margin-bottom: 40px;
+    }
+    .section h2 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+    .item-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .item {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      width: 150px;
+      text-align: center;
+    }
+    .item img {
+      width: 64px;
+      height: 64px;
+      object-fit: contain;
+    }
+    .item p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🛒 Live Game Stock</h1>
+  <button id="notify-btn">🔔 Enable Notifications</button>
+  <div id="stock-container">Loading...</div>
+
+  <script>
+    let lastSignature = '';
+
+    async function fetchStock() {
+      const res = await fetch("https://test-hub.kys.gay/api/grow/garden/stock");
+      const data = await res.json();
+      return data;
+    }
+
+    function generateSignature(data) {
+      return JSON.stringify(data)
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(0, 200); // basic hash shortcut
+    }
+
+    function showNotification(title, body) {
+      if (Notification.permission === "granted") {
+        navigator.serviceWorker.getRegistration().then(reg => {
+          if (reg) {
+            reg.showNotification(title, {
+              body,
+              icon: "https://cdn-icons-png.flaticon.com/512/159/159604.png"
+            });
+          }
+        });
+      }
+    }
+
+    function displayStock(data) {
+      const container = document.getElementById("stock-container");
+      container.innerHTML = "";
+
+      const categories = ["cosmetics", "eggs", "gear", "honey", "honey_shop", "seeds"];
+      categories.forEach(category => {
+        if (data[category] && data[category].items.length > 0) {
+          const section = document.createElement("div");
+          section.className = "section";
+          const title = document.createElement("h2");
+          title.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+          section.appendChild(title);
+
+          const list = document.createElement("div");
+          list.className = "item-list";
+
+          data[category].items.forEach(item => {
+            const el = document.createElement("div");
+            el.className = "item";
+            el.innerHTML = `
+              <img src="${item.image_url}" alt="${item.name}">
+              <p><strong>${item.name}</strong></p>
+              <p>Qty: ${item.quantity}</p>
+            `;
+            list.appendChild(el);
+          });
+
+          section.appendChild(list);
+          container.appendChild(section);
+        }
+      });
+    }
+
+    async function updateLoop() {
+      try {
+        const data = await fetchStock();
+        displayStock(data);
+
+        const sig = generateSignature(data);
+        if (sig !== lastSignature) {
+          lastSignature = sig;
+          showNotification("🔄 Stock Updated!", "New stock is available now.");
+        }
+      } catch (err) {
+        console.error("Fetch failed:", err);
+      }
+    }
+
+    document.getElementById("notify-btn").addEventListener("click", async () => {
+      const permission = await Notification.requestPermission();
+      if (permission === "granted") {
+        await navigator.serviceWorker.register("/sw.js");
+        alert("✅ Notifications enabled!");
+      } else {
+        alert("❌ Notification permission denied.");
+      }
+    });
+
+    // Start immediately and run every 5 minutes
+    updateLoop();
+    setInterval(updateLoop, 5 * 60 * 1000);
+  </script>
+</body>
+</html>
