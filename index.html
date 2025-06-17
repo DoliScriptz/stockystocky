@@ -3,62 +3,87 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Game Stock Notifier</title>
+  <title>Stock Notifier</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #f5f5f5;
-      padding: 30px;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f2f2f7;
+      padding: 20px;
     }
+
     h1 {
       text-align: center;
+      color: #333;
+      margin-bottom: 10px;
     }
+
     button {
       display: block;
-      margin: 10px auto 30px;
+      margin: 0 auto 30px;
       padding: 10px 20px;
       font-size: 16px;
-      border: none;
       background: #007bff;
       color: white;
+      border: none;
       border-radius: 6px;
       cursor: pointer;
     }
+
     .section {
       margin-bottom: 40px;
     }
+
     .section h2 {
-      margin-bottom: 10px;
-      color: #333;
+      border-left: 5px solid #007bff;
+      padding-left: 10px;
+      color: #444;
+      margin-bottom: 15px;
+      font-size: 20px;
     }
+
     .item-list {
       display: flex;
       flex-wrap: wrap;
-      gap: 15px;
+      gap: 16px;
     }
+
     .item {
       background: white;
-      padding: 10px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      border-radius: 10px;
+      padding: 12px;
       width: 150px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
       text-align: center;
+      transition: transform 0.2s;
     }
+
+    .item:hover {
+      transform: scale(1.03);
+    }
+
     .item img {
       width: 64px;
       height: 64px;
       object-fit: contain;
+      margin-bottom: 6px;
     }
+
     .item p {
-      margin: 5px 0;
+      margin: 2px 0;
       font-size: 14px;
+    }
+
+    #stock-container {
+      max-width: 1000px;
+      margin: auto;
     }
   </style>
 </head>
 <body>
-  <h1>🛒 Live Game Stock</h1>
+  <h1>🛒 Garden Game Stock Tracker</h1>
   <button id="notify-btn">🔔 Enable Notifications</button>
-  <div id="stock-container">Loading...</div>
+  <div id="stock-container">Loading stock...</div>
 
   <script>
     let lastSignature = '';
@@ -70,9 +95,7 @@
     }
 
     function generateSignature(data) {
-      return JSON.stringify(data)
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .slice(0, 200); // basic hash shortcut
+      return JSON.stringify(data).replace(/[^a-zA-Z0-9]/g, '').slice(0, 250);
     }
 
     function showNotification(title, body) {
@@ -92,23 +115,32 @@
       const container = document.getElementById("stock-container");
       container.innerHTML = "";
 
-      const categories = ["cosmetics", "eggs", "gear", "honey", "honey_shop", "seeds"];
-      categories.forEach(category => {
-        if (data[category] && data[category].items.length > 0) {
+      const categories = [
+        ["cosmetics", "🎨 Cosmetics"],
+        ["eggs", "🥚 Eggs"],
+        ["gear", "⚙️ Gear"],
+        ["honey", "🍯 Honey"],
+        ["seeds", "🌱 Seeds"],
+        ["honey_shop", "🛍️ Honey Shop"]
+      ];
+
+      categories.forEach(([key, title]) => {
+        if (data[key] && data[key].items.length > 0) {
           const section = document.createElement("div");
           section.className = "section";
-          const title = document.createElement("h2");
-          title.textContent = category.charAt(0).toUpperCase() + category.slice(1);
-          section.appendChild(title);
+
+          const header = document.createElement("h2");
+          header.textContent = title;
+          section.appendChild(header);
 
           const list = document.createElement("div");
           list.className = "item-list";
 
-          data[category].items.forEach(item => {
+          data[key].items.forEach(item => {
             const el = document.createElement("div");
             el.className = "item";
             el.innerHTML = `
-              <img src="${item.image_url}" alt="${item.name}">
+              <img src="${item.image_url}" alt="${item.name}" crossorigin="anonymous" onerror="this.src='https://via.placeholder.com/64x64?text=?';">
               <p><strong>${item.name}</strong></p>
               <p>Qty: ${item.quantity}</p>
             `;
@@ -129,10 +161,10 @@
         const sig = generateSignature(data);
         if (sig !== lastSignature) {
           lastSignature = sig;
-          showNotification("🔄 Stock Updated!", "New stock is available now.");
+          showNotification("🔄 Stock Updated", "New stock items are available.");
         }
       } catch (err) {
-        console.error("Fetch failed:", err);
+        console.error("Failed to fetch stock:", err);
       }
     }
 
